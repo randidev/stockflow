@@ -115,6 +115,8 @@ Quick reference:
 - **npm workspaces monorepo** instead of two separate repos — one `git clone`, one `npm install`, easier for a reviewer to run.
 - **NestJS on Vercel as a serverless function** — `apps/api/api/index.ts` builds the Nest app once via `createApp()` (extracted out of `main.ts` so local dev and serverless share the same bootstrap) and hands the underlying Express instance straight to Vercel's Node runtime, since a Vercel Node function is just `(req, res) => void` — the same signature Express already has. No extra adapter package needed.
 - **bcryptjs instead of bcrypt** — bcrypt's native binding turned out to be unreliable to build in Vercel's serverless environment; bcryptjs is pure JS, slightly slower, but one less moving part for a project this size.
+- **Login always runs a bcrypt compare, even for an unregistered email** (against a fixed dummy hash) — otherwise a login attempt for an unknown email returns noticeably faster than one for a known email with the wrong password, and that timing gap alone lets an attacker enumerate registered emails despite the identical error message.
+- **`pay`/`cancel` guard the status transition on the UPDATE itself** (`WHERE id = ? AND status = ?`), not a separate read-then-write check — same reasoning as the stock guard: it makes two concurrent duplicate clicks on the same invoice safe (one wins, the other gets a clean `409`) instead of both passing the check and, for `cancel`, double-crediting stock.
 
 ## Trade-offs and known limitations
 
@@ -124,6 +126,8 @@ Quick reference:
 - **No rate limiting on login.** Listed as a bonus; skipped to keep the core solid.
 - **The frontend's "live totals" on the invoice form use a client-side tax-rate env var that has to be kept in sync with the backend's.** It's a display-only preview — the server is what actually enforces the tax rate — but it's a small duplication I'd rather not have if I had more time (e.g. expose it via a public config endpoint instead).
 - **Invoice numbers can have gaps** (e.g. if an invoice is created inside a request that then fails for an unrelated reason after the counter increments — not currently possible given the code path, but the counter and the invoice write aren't decoupled into separate concerns). Not a correctness bug, just worth naming.
+- **Logout doesn't invalidate the JWT server-side** — it clears the cookie, but a copy of the token (if somehow extracted) would still work until it expires. This is the standard trade-off of a stateless JWT; a session store or a short-lived-token-plus-refresh setup would close it, at the cost of the simplicity a stateless token gives a one-day project.
+- **The multi-column forms and the invoice line-item row aren't optimized for narrow phone screens** — this is an internal back-office tool I built desktop-first, in line with the brief's explicit "plain and functional is fine, pixel-perfect UI not required."
 
 ## What I'd do with one more week
 
@@ -137,6 +141,8 @@ Quick reference:
 ## AI usage
 
 Built with Claude Code end to end — scaffolding both apps, writing the Prisma schema and NestJS modules, the Next.js pages, the e2e tests, and this README. I reviewed and tested every endpoint and page manually (curl for the API, a real browser session for the full login → create invoice → issue → cancel flow) before considering anything done, and I can walk through and justify any part of it.
+
+I also ran a dedicated adversarial pass afterward — cross-user data isolation, a login-timing side channel, XSS/SQLi payloads, concurrent duplicate requests on `cancel`, malformed input, nested-array validation messages, keyboard navigation and label/input association — and fixed what it turned up (see the two "fix" bullets above and the accessibility/UX fixes on the frontend) rather than leaving them as known issues.
 
 ## Time spent
 
