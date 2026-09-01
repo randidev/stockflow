@@ -2,6 +2,8 @@
 
 Minimal inventory & invoicing app. Staff can sign in, manage a product catalog, and raise invoices against it. Stock goes down when an invoice is issued and comes back if it's cancelled.
 
+**Live demo:** https://stockflow-web-beta.vercel.app (API: https://stockflow-api-six.vercel.app, docs at `/docs`). Both are deployed on Vercel and share a Neon Postgres database — same demo login as below. First request after a while may take a couple of extra seconds (serverless cold start).
+
 Monorepo, npm workspaces:
 
 - `apps/api` — NestJS + Prisma + PostgreSQL
@@ -111,6 +113,8 @@ Quick reference:
 - **Block-delete instead of soft-delete for products** — a product referenced by an invoice returns `409 Conflict` on delete. Simpler than threading a `deletedAt` filter through every query, and the invoice's line-item snapshot means the invoice doesn't actually need the product to still exist except for this integrity check.
 - **Next.js App Router with plain client components + fetch**, no server actions or extra data-fetching library — the app is small enough that a data-fetching abstraction would be pure overhead.
 - **npm workspaces monorepo** instead of two separate repos — one `git clone`, one `npm install`, easier for a reviewer to run.
+- **NestJS on Vercel as a serverless function** — `apps/api/api/index.ts` builds the Nest app once via `createApp()` (extracted out of `main.ts` so local dev and serverless share the same bootstrap) and hands the underlying Express instance straight to Vercel's Node runtime, since a Vercel Node function is just `(req, res) => void` — the same signature Express already has. No extra adapter package needed.
+- **bcryptjs instead of bcrypt** — bcrypt's native binding turned out to be unreliable to build in Vercel's serverless environment; bcryptjs is pure JS, slightly slower, but one less moving part for a project this size.
 
 ## Trade-offs and known limitations
 
