@@ -6,6 +6,10 @@ import { RegisterDto } from './dto/register.dto.js';
 import { LoginDto } from './dto/login.dto.js';
 
 const SALT_ROUNDS = 12;
+// Compared against when no user is found, so a login attempt for an
+// unregistered email takes about as long as one for a wrong password —
+// otherwise the response time itself reveals whether the email exists.
+const DUMMY_HASH = bcrypt.hashSync('not-a-real-password', SALT_ROUNDS);
 
 @Injectable()
 export class AuthService {
@@ -32,7 +36,7 @@ export class AuthService {
 
   async login(dto: LoginDto) {
     const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
-    const valid = user ? await bcrypt.compare(dto.password, user.passwordHash) : false;
+    const valid = await bcrypt.compare(dto.password, user?.passwordHash ?? DUMMY_HASH);
     if (!user || !valid) {
       // Same message whether the email is unknown or the password is wrong.
       throw new UnauthorizedException('Invalid email or password');
