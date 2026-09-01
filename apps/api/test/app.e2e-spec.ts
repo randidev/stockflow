@@ -1,8 +1,6 @@
-import { Test, type TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe, UnprocessableEntityException } from '@nestjs/common';
+import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import cookieParser from 'cookie-parser';
-import { AppModule } from '../src/app.module.js';
+import { createApp } from '../src/create-app.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 
 describe('StockFlow API (e2e)', () => {
@@ -14,16 +12,10 @@ describe('StockFlow API (e2e)', () => {
   const agent = { cookie: '' };
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({ imports: [AppModule] }).compile();
-    app = moduleFixture.createNestApplication();
-    app.use(cookieParser());
-    app.useGlobalPipes(
-      new ValidationPipe({
-        whitelist: true,
-        transform: true,
-        exceptionFactory: (errors) => new UnprocessableEntityException({ message: 'Validation failed', errors }),
-      }),
-    );
+    // Boots through the same createApp() used in production (main.ts and
+    // the Vercel serverless entrypoint), so these tests exercise the real
+    // validation pipe, filters and CORS setup instead of a re-declared copy.
+    app = await createApp();
     await app.init();
     prisma = app.get(PrismaService);
   });
@@ -120,5 +112,39 @@ describe('StockFlow API (e2e)', () => {
   it('rejects an illegal status transition (cancel a cancelled invoice)', async () => {
     const res = await request(app.getHttpServer()).post(`/invoices/${invoiceId}/cancel`).set('Cookie', agent.cookie);
     expect(res.status).toBe(409);
+  });
+
+  it('reports a non-empty field message for an invalid nested invoice item', async () => {
+    const res = await request(app.getHttpServer())
+      .post('/invoices')
+      .set('Cookie', agent.cookie)
+      .send({
+        customerName: 'Acme Co',
+        issueDate: '2026-01-01',
+        dueDate: '2026-01-15',
+        items: [{ productId, quantity: 0 }],
+      });
+    expect(res.status).toBe(422);
+    const itemsError = res.body.errors.find((e: { field: string }) => e.field === 'items');
+    expect(itemsError.messages.length).toBeGreaterThan(0);
+  });
+
+  it('only restores stock once when the same invoice is cancelled concurrently', async () => {
+    const create = await request(app.getHttpServer())
+      .post('/invoices')
+      .set('Cookie', agent.cookie)
+      .send({ customerName: 'Race Co', issueDate: '2026-01-01', dueDate: '2026-01-15', items: [{ productId, quantity: 2 }] });
+    const raceInvoiceId = create.body.id;
+    await request(app.getHttpServer()).post(`/invoices/${raceInvoiceId}/issue`).set('Cookie', agent.cookie);
+
+    const [first, second] = await Promise.all([
+      request(app.getHttpServer()).post(`/invoices/${raceInvoiceId}/cancel`).set('Cookie', agent.cookie),
+      request(app.getHttpServer()).post(`/invoices/${raceInvoiceId}/cancel`).set('Cookie', agent.cookie),
+    ]);
+    const statuses = [first.status, second.status].sort();
+    expect(statuses).toEqual([201, 409]);
+
+    const product = await request(app.getHttpServer()).get(`/products/${productId}`).set('Cookie', agent.cookie);
+    expect(product.body.quantityOnHand).toBe(5);
   });
 });
