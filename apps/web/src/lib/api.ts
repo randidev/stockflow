@@ -11,6 +11,14 @@ export class ApiError extends Error {
   }
 }
 
+// Maps the API's {field, messages}[] shape to {field: "joined message"} so a
+// form can show each error next to the input it belongs to, instead of just
+// a generic "Validation failed" banner.
+export function fieldErrors(err: unknown): Record<string, string> {
+  if (!(err instanceof ApiError) || !err.fieldErrors) return {};
+  return Object.fromEntries(err.fieldErrors.map((f) => [f.field, f.messages.join(", ")]));
+}
+
 export async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...options,

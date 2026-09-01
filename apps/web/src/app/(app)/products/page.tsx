@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, fieldErrors } from "@/lib/api";
 import { formatMoney } from "@/lib/money";
 
 type Product = {
@@ -28,6 +28,7 @@ export default function ProductsPage() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const pageSize = 10;
+  const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -35,7 +36,16 @@ export default function ProductsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [formError, setFormError] = useState<string | null>(null);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [showForm, setShowForm] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPage(1);
+      setSearch(searchInput);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   async function load() {
     setLoading(true);
@@ -62,6 +72,7 @@ export default function ProductsPage() {
     setEditingId(null);
     setForm(emptyForm);
     setFormError(null);
+    setFormErrors({});
     setShowForm(true);
   }
 
@@ -75,12 +86,14 @@ export default function ProductsPage() {
       quantityOnHand: String(p.quantityOnHand),
     });
     setFormError(null);
+    setFormErrors({});
     setShowForm(true);
   }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setFormError(null);
+    setFormErrors({});
     const payload = {
       sku: form.sku,
       name: form.name,
@@ -98,6 +111,7 @@ export default function ProductsPage() {
       load();
     } catch (err) {
       setFormError(err instanceof ApiError ? err.message : "Failed to save product");
+      setFormErrors(fieldErrors(err));
     }
   }
 
@@ -126,12 +140,10 @@ export default function ProductsPage() {
       </div>
 
       <input
+        aria-label="Search by name or SKU"
         placeholder="Search by name or SKU"
-        value={search}
-        onChange={(e) => {
-          setPage(1);
-          setSearch(e.target.value);
-        }}
+        value={searchInput}
+        onChange={(e) => setSearchInput(e.target.value)}
         className="input max-w-sm"
       />
 
@@ -139,18 +151,33 @@ export default function ProductsPage() {
         <form onSubmit={handleSubmit} className="card space-y-4 p-5">
           <h2 className="text-sm font-semibold text-ink">{editingId ? "Edit product" : "New product"}</h2>
           {formError && <p className="banner-danger">{formError}</p>}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="label">SKU</label>
-              <input required value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} className="input" />
-            </div>
-            <div>
-              <label className="label">Name</label>
-              <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="input" />
-            </div>
-            <div>
-              <label className="label">Unit price</label>
+              <label htmlFor="sku" className="label">SKU</label>
               <input
+                id="sku"
+                required
+                value={form.sku}
+                onChange={(e) => setForm({ ...form, sku: e.target.value })}
+                className="input"
+              />
+              {formErrors.sku && <p className="mt-1 text-xs text-danger">{formErrors.sku}</p>}
+            </div>
+            <div>
+              <label htmlFor="name" className="label">Name</label>
+              <input
+                id="name"
+                required
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                className="input"
+              />
+              {formErrors.name && <p className="mt-1 text-xs text-danger">{formErrors.name}</p>}
+            </div>
+            <div>
+              <label htmlFor="unitPrice" className="label">Unit price</label>
+              <input
+                id="unitPrice"
                 required
                 type="number"
                 min="0"
@@ -159,10 +186,12 @@ export default function ProductsPage() {
                 onChange={(e) => setForm({ ...form, unitPrice: e.target.value })}
                 className="input"
               />
+              {formErrors.unitPrice && <p className="mt-1 text-xs text-danger">{formErrors.unitPrice}</p>}
             </div>
             <div>
-              <label className="label">Quantity on hand</label>
+              <label htmlFor="quantityOnHand" className="label">Quantity on hand</label>
               <input
+                id="quantityOnHand"
                 required
                 type="number"
                 min="0"
@@ -171,10 +200,12 @@ export default function ProductsPage() {
                 onChange={(e) => setForm({ ...form, quantityOnHand: e.target.value })}
                 className="input"
               />
+              {formErrors.quantityOnHand && <p className="mt-1 text-xs text-danger">{formErrors.quantityOnHand}</p>}
             </div>
-            <div className="col-span-2">
-              <label className="label">Description</label>
+            <div className="sm:col-span-2">
+              <label htmlFor="description" className="label">Description</label>
               <input
+                id="description"
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
                 className="input"

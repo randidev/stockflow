@@ -1,14 +1,21 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent, type KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, fieldErrors } from "@/lib/api";
 import { formatMoney } from "@/lib/money";
 
 type Product = { id: string; sku: string; name: string; unitPrice: number; quantityOnHand: number };
 type Line = { productId: string; quantity: number };
 
 const TAX_RATE_PERCENT = Number(process.env.NEXT_PUBLIC_TAX_RATE_PERCENT ?? 11);
+
+// Selecting a product or typing a quantity and hitting Enter would otherwise
+// submit the whole form (default browser behavior for the first text-like
+// field in a form) instead of just confirming that one line.
+function preventImplicitSubmit(e: KeyboardEvent) {
+  if (e.key === "Enter") e.preventDefault();
+}
 
 export default function NewInvoicePage() {
   const router = useRouter();
@@ -19,6 +26,7 @@ export default function NewInvoicePage() {
   const [notes, setNotes] = useState("");
   const [lines, setLines] = useState<Line[]>([{ productId: "", quantity: 1 }]);
   const [error, setError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -47,6 +55,7 @@ export default function NewInvoicePage() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    setErrors({});
     setLoading(true);
     try {
       const invoice = await api<{ id: string }>("/invoices", {
@@ -62,6 +71,7 @@ export default function NewInvoicePage() {
       router.push(`/invoices/${invoice.id}`);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to create invoice");
+      setErrors(fieldErrors(err));
     } finally {
       setLoading(false);
     }
@@ -75,33 +85,56 @@ export default function NewInvoicePage() {
         {error && <p className="banner-danger">{error}</p>}
 
         <div>
-          <label className="label">Customer name</label>
-          <input required value={customerName} onChange={(e) => setCustomerName(e.target.value)} className="input" />
+          <label htmlFor="customerName" className="label">Customer name</label>
+          <input
+            id="customerName"
+            required
+            value={customerName}
+            onChange={(e) => setCustomerName(e.target.value)}
+            className="input"
+          />
+          {errors.customerName && <p className="mt-1 text-xs text-danger">{errors.customerName}</p>}
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className="label">Issue date</label>
-            <input required type="date" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} className="input" />
+            <label htmlFor="issueDate" className="label">Issue date</label>
+            <input
+              id="issueDate"
+              required
+              type="date"
+              value={issueDate}
+              onChange={(e) => setIssueDate(e.target.value)}
+              className="input"
+            />
           </div>
           <div>
-            <label className="label">Due date</label>
-            <input required type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="input" />
+            <label htmlFor="dueDate" className="label">Due date</label>
+            <input
+              id="dueDate"
+              required
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+              className="input"
+            />
           </div>
         </div>
 
         <div className="space-y-2">
-          <label className="label mb-0">Line items</label>
+          <span className="label mb-0">Line items</span>
           <div className="space-y-2">
             {lines.map((line, i) => {
               const product = products.find((p) => p.id === line.productId);
               return (
-                <div key={i} className="flex items-center gap-2">
+                <div key={i} className="flex flex-wrap items-center gap-2">
                   <select
+                    aria-label={`Product for line ${i + 1}`}
                     required
                     value={line.productId}
                     onChange={(e) => updateLine(i, { productId: e.target.value })}
-                    className="input flex-1"
+                    onKeyDown={preventImplicitSubmit}
+                    className="input min-w-40 flex-1"
                   >
                     <option value="">Select product</option>
                     {products.map((p) => (
@@ -111,11 +144,13 @@ export default function NewInvoicePage() {
                     ))}
                   </select>
                   <input
+                    aria-label={`Quantity for line ${i + 1}`}
                     required
                     type="number"
                     min={1}
                     value={line.quantity}
                     onChange={(e) => updateLine(i, { quantity: Number(e.target.value) })}
+                    onKeyDown={preventImplicitSubmit}
                     className="input w-20 shrink-0"
                   />
                   <span className="w-28 shrink-0 text-right text-sm tabular-nums text-ink-2">
@@ -128,14 +163,15 @@ export default function NewInvoicePage() {
               );
             })}
           </div>
+          {errors.items && <p className="text-xs text-danger">{errors.items}</p>}
           <button type="button" onClick={addLine} className="link text-sm">
             + Add line
           </button>
         </div>
 
         <div>
-          <label className="label">Notes</label>
-          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="input" rows={3} />
+          <label htmlFor="notes" className="label">Notes</label>
+          <textarea id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} className="input" rows={3} />
         </div>
 
         <div className="space-y-1.5 border-t border-border pt-4 text-sm">

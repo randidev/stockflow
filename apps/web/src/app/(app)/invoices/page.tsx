@@ -55,6 +55,7 @@ export default function InvoicesPage() {
       </div>
 
       <select
+        aria-label="Filter by status"
         value={status}
         onChange={(e) => {
           setPage(1);

@@ -3,18 +3,20 @@
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, fieldErrors } from "@/lib/api";
 
 export default function RegisterPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    setErrors({});
     setLoading(true);
     try {
       await api("/auth/register", { method: "POST", body: JSON.stringify({ email, password }) });
@@ -22,6 +24,7 @@ export default function RegisterPage() {
       router.push("/products");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Something went wrong");
+      setErrors(fieldErrors(err));
     } finally {
       setLoading(false);
     }
@@ -41,13 +44,22 @@ export default function RegisterPage() {
         {error && <p className="banner-danger">{error}</p>}
 
         <div>
-          <label className="label">Email</label>
-          <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="input" />
+          <label htmlFor="email" className="label">Email</label>
+          <input
+            id="email"
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="input"
+          />
+          {errors.email && <p className="mt-1 text-xs text-danger">{errors.email}</p>}
         </div>
 
         <div>
-          <label className="label">Password</label>
+          <label htmlFor="password" className="label">Password</label>
           <input
+            id="password"
             type="password"
             required
             minLength={8}
@@ -55,7 +67,11 @@ export default function RegisterPage() {
             onChange={(e) => setPassword(e.target.value)}
             className="input"
           />
-          <p className="mt-1.5 text-xs text-ink-2">At least 8 characters.</p>
+          {errors.password ? (
+            <p className="mt-1 text-xs text-danger">{errors.password}</p>
+          ) : (
+            <p className="mt-1.5 text-xs text-ink-2">At least 8 characters.</p>
+          )}
         </div>
 
         <button type="submit" disabled={loading} className="btn-primary w-full">

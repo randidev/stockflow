@@ -40,13 +40,21 @@ export default function LoginPage() {
         {error && <p className="banner-danger">{error}</p>}
 
         <div>
-          <label className="label">Email</label>
-          <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="input" />
+          <label htmlFor="email" className="label">Email</label>
+          <input
+            id="email"
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="input"
+          />
         </div>
 
         <div>
-          <label className="label">Password</label>
+          <label htmlFor="password" className="label">Password</label>
           <input
+            id="password"
             type="password"
             required
             value={password}
