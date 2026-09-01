@@ -26,10 +26,13 @@ export class AuthController {
   @HttpCode(200)
   async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
     const { token, user } = await this.authService.login(dto);
+    const isProd = process.env.NODE_ENV === 'production';
     res.cookie(COOKIE_NAME, token, {
       httpOnly: true,
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
+      // 'none' is required when frontend and backend are on different
+      // domains in production (e.g. two separate Vercel deployments).
+      sameSite: isProd ? 'none' : 'lax',
+      secure: isProd,
       maxAge: 24 * 60 * 60 * 1000,
     });
     return user;
