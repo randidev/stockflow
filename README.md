@@ -153,8 +153,6 @@ Things I knowingly didn't do, and why:
 
 I built this with Claude Code end to end — scaffolding both apps, the Prisma schema and NestJS modules, the Next.js pages, the e2e tests, and this README. I didn't just accept what it produced: I tested every endpoint and page myself before calling anything done — curl against the API, a real browser session walking through login → create invoice → issue → cancel — and I can explain and defend any part of it.
 
-After the first pass, I went back and deliberately tried to break my own app: cross-user data isolation, a login-timing side channel, XSS/SQLi payloads, firing concurrent duplicate requests at `cancel`, malformed input, keyboard navigation, whether form labels were actually wired to their inputs. A few of those turned up real issues — the timing side-channel and the concurrent-cancel race being the two I'd call genuine bugs — and I fixed them rather than leaving them as "known limitations" to write around.
-
 ## Time spent
 
 Roughly one focused day, in line with the brief's budget.
