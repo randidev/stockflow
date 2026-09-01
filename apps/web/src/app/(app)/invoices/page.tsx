@@ -4,12 +4,13 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
 import { formatMoney } from "@/lib/money";
+import { statusBadgeClass, type InvoiceStatus } from "@/lib/status";
 
 type Invoice = {
   id: string;
   invoiceNumber: string;
   customerName: string;
-  status: "DRAFT" | "ISSUED" | "PAID" | "CANCELLED";
+  status: InvoiceStatus;
   total: number;
   issueDate: string;
 };
@@ -42,10 +43,13 @@ export default function InvoicesPage() {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold">Invoices</h1>
-        <Link href="/invoices/new" className="rounded bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white">
+        <div>
+          <h1 className="text-lg font-semibold text-ink">Invoices</h1>
+          <p className="text-sm text-ink-2">{total} total</p>
+        </div>
+        <Link href="/invoices/new" className="btn-primary">
           New invoice
         </Link>
       </div>
@@ -56,7 +60,7 @@ export default function InvoicesPage() {
           setPage(1);
           setStatus(e.target.value);
         }}
-        className="rounded border px-3 py-2 text-sm"
+        className="input max-w-48"
       >
         {STATUSES.map((s) => (
           <option key={s} value={s}>
@@ -65,40 +69,40 @@ export default function InvoicesPage() {
         ))}
       </select>
 
-      {loading && <p className="text-sm text-zinc-500">Loading invoices...</p>}
-      {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+      {loading && <p className="text-sm text-ink-2">Loading invoices...</p>}
+      {error && <p className="banner-danger">{error}</p>}
 
       {!loading && !error && (
-        <div className="overflow-x-auto rounded border bg-white">
-          <table className="w-full text-sm">
-            <thead className="bg-zinc-50 text-left text-zinc-500">
+        <div className="table-shell">
+          <table>
+            <thead>
               <tr>
-                <th className="px-3 py-2">Number</th>
-                <th className="px-3 py-2">Customer</th>
-                <th className="px-3 py-2">Status</th>
-                <th className="px-3 py-2">Total</th>
+                <th>Number</th>
+                <th>Customer</th>
+                <th>Status</th>
+                <th>Total</th>
               </tr>
             </thead>
             <tbody>
               {items.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-3 py-6 text-center text-zinc-500">
+                  <td colSpan={4} className="py-8 text-center text-ink-2">
                     No invoices found.
                   </td>
                 </tr>
               )}
               {items.map((inv) => (
-                <tr key={inv.id} className="border-t">
-                  <td className="px-3 py-2">
-                    <Link href={`/invoices/${inv.id}`} className="font-medium text-zinc-900 underline">
+                <tr key={inv.id}>
+                  <td>
+                    <Link href={`/invoices/${inv.id}`} className="link">
                       {inv.invoiceNumber}
                     </Link>
                   </td>
-                  <td className="px-3 py-2">{inv.customerName}</td>
-                  <td className="px-3 py-2">
-                    <span className="rounded bg-zinc-100 px-2 py-0.5 text-xs font-medium">{inv.status}</span>
+                  <td className="text-ink">{inv.customerName}</td>
+                  <td>
+                    <span className={statusBadgeClass(inv.status)}>{inv.status}</span>
                   </td>
-                  <td className="px-3 py-2">{formatMoney(inv.total)}</td>
+                  <td className="font-medium text-ink">{formatMoney(inv.total)}</td>
                 </tr>
               ))}
             </tbody>
@@ -107,18 +111,14 @@ export default function InvoicesPage() {
       )}
 
       <div className="flex items-center justify-between text-sm">
-        <span className="text-zinc-500">
+        <span className="text-ink-2">
           Page {page} of {totalPages} ({total} total)
         </span>
         <div className="flex gap-2">
-          <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)} className="rounded border px-3 py-1 disabled:opacity-40">
+          <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)} className="btn-secondary">
             Previous
           </button>
-          <button
-            disabled={page >= totalPages}
-            onClick={() => setPage((p) => p + 1)}
-            className="rounded border px-3 py-1 disabled:opacity-40"
-          >
+          <button disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)} className="btn-secondary">
             Next
           </button>
         </div>

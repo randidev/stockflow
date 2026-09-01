@@ -4,13 +4,14 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { formatMoney } from "@/lib/money";
+import { statusBadgeClass, type InvoiceStatus } from "@/lib/status";
 
 type InvoiceItem = { id: string; productName: string; unitPrice: number; quantity: number; lineTotal: number };
 type Invoice = {
   id: string;
   invoiceNumber: string;
   customerName: string;
-  status: "DRAFT" | "ISSUED" | "PAID" | "CANCELLED";
+  status: InvoiceStatus;
   issueDate: string;
   dueDate: string;
   notes: string | null;
@@ -52,103 +53,82 @@ export default function InvoiceDetailPage() {
     }
   }
 
-  if (loading) return <p className="text-sm text-zinc-500">Loading invoice...</p>;
-  if (error) return <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>;
+  if (loading) return <p className="text-sm text-ink-2">Loading invoice...</p>;
+  if (error) return <p className="banner-danger">{error}</p>;
   if (!invoice) return null;
 
   return (
-    <div className="max-w-2xl space-y-4">
+    <div className="max-w-2xl space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-semibold">{invoice.invoiceNumber}</h1>
-          <p className="text-sm text-zinc-500">{invoice.customerName}</p>
+          <h1 className="text-lg font-semibold text-ink">{invoice.invoiceNumber}</h1>
+          <p className="text-sm text-ink-2">{invoice.customerName}</p>
         </div>
-        <span className="rounded bg-zinc-100 px-2 py-1 text-xs font-medium">{invoice.status}</span>
+        <span className={statusBadgeClass(invoice.status)}>{invoice.status}</span>
       </div>
 
-      {actionError && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{actionError}</p>}
+      {actionError && <p className="banner-danger">{actionError}</p>}
 
-      <div className="flex gap-2">
-        {invoice.status === "DRAFT" && (
-          <>
-            <button
-              disabled={actionLoading}
-              onClick={() => runAction("issue")}
-              className="rounded bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
-            >
+      {(invoice.status === "DRAFT" || invoice.status === "ISSUED") && (
+        <div className="flex gap-2">
+          {invoice.status === "DRAFT" && (
+            <button disabled={actionLoading} onClick={() => runAction("issue")} className="btn-primary">
               Issue
             </button>
-            <button
-              disabled={actionLoading}
-              onClick={() => runAction("cancel")}
-              className="rounded border px-3 py-1.5 text-sm disabled:opacity-50"
-            >
-              Cancel
-            </button>
-          </>
-        )}
-        {invoice.status === "ISSUED" && (
-          <>
-            <button
-              disabled={actionLoading}
-              onClick={() => runAction("pay")}
-              className="rounded bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
-            >
+          )}
+          {invoice.status === "ISSUED" && (
+            <button disabled={actionLoading} onClick={() => runAction("pay")} className="btn-primary">
               Mark paid
             </button>
-            <button
-              disabled={actionLoading}
-              onClick={() => runAction("cancel")}
-              className="rounded border px-3 py-1.5 text-sm disabled:opacity-50"
-            >
-              Cancel
-            </button>
-          </>
-        )}
-      </div>
+          )}
+          <button disabled={actionLoading} onClick={() => runAction("cancel")} className="btn-secondary">
+            Cancel
+          </button>
+        </div>
+      )}
 
-      <div className="rounded border bg-white">
-        <table className="w-full text-sm">
-          <thead className="bg-zinc-50 text-left text-zinc-500">
+      <div className="table-shell">
+        <table>
+          <thead>
             <tr>
-              <th className="px-3 py-2">Product</th>
-              <th className="px-3 py-2">Unit price</th>
-              <th className="px-3 py-2">Qty</th>
-              <th className="px-3 py-2">Line total</th>
+              <th>Product</th>
+              <th>Unit price</th>
+              <th>Qty</th>
+              <th>Line total</th>
             </tr>
           </thead>
           <tbody>
             {invoice.items.map((item) => (
-              <tr key={item.id} className="border-t">
-                <td className="px-3 py-2">{item.productName}</td>
-                <td className="px-3 py-2">{formatMoney(item.unitPrice)}</td>
-                <td className="px-3 py-2">{item.quantity}</td>
-                <td className="px-3 py-2">{formatMoney(item.lineTotal)}</td>
+              <tr key={item.id}>
+                <td className="font-medium text-ink">{item.productName}</td>
+                <td className="tabular-nums text-ink-2">{formatMoney(item.unitPrice)}</td>
+                <td className="tabular-nums text-ink-2">{item.quantity}</td>
+                <td className="tabular-nums font-medium text-ink">{formatMoney(item.lineTotal)}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
-      <div className="space-y-1 rounded border bg-white p-4 text-sm">
-        <div className="flex justify-between">
-          <span className="text-zinc-500">Subtotal</span>
-          <span>{formatMoney(invoice.subtotal)}</span>
+      <div className="card space-y-1.5 p-5 text-sm">
+        <div className="flex justify-between text-ink-2">
+          <span>Subtotal</span>
+          <span className="tabular-nums text-ink">{formatMoney(invoice.subtotal)}</span>
         </div>
-        <div className="flex justify-between">
-          <span className="text-zinc-500">Tax</span>
-          <span>{formatMoney(invoice.taxAmount)}</span>
+        <div className="flex justify-between text-ink-2">
+          <span>Tax</span>
+          <span className="tabular-nums text-ink">{formatMoney(invoice.taxAmount)}</span>
         </div>
-        <div className="flex justify-between font-semibold">
+        <div className="flex justify-between border-t border-border pt-1.5 text-base font-semibold text-ink">
           <span>Total</span>
-          <span>{formatMoney(invoice.total)}</span>
+          <span className="tabular-nums">{formatMoney(invoice.total)}</span>
         </div>
       </div>
 
       {invoice.notes && (
-        <div className="rounded border bg-white p-4 text-sm">
-          <p className="font-medium">Notes</p>
-          <p className="text-zinc-600">{invoice.notes}</p>
+        <div className="card space-y-1 p-5 text-sm">
+          <p className="font-medium text-ink">Notes</p>
+          <p className="text-ink-2">{invoice.notes}</p>
         </div>
       )}
     </div>

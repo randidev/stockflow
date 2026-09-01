@@ -1,26 +1,145 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  color-scheme: light;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-canvas: #fafafa;
+  --color-surface: #ffffff;
+  --color-surface-2: #f4f4f5;
+  --color-border: #e4e4e7;
+  --color-ink: #18181b;
+  --color-ink-2: #71717a;
+
+  --color-accent: #4338ca;
+  --color-accent-ink: #ffffff;
+  --color-accent-soft: #eef2ff;
+
+  --color-danger: #b91c1c;
+  --color-danger-bg: #fef2f2;
+  --color-danger-ink: #b91c1c;
+
+  --color-success: #15803d;
+  --color-success-bg: #f0fdf4;
+
+  --color-warn: #a16207;
+  --color-warn-bg: #fefce8;
+
+  --shadow-card: 0 1px 2px rgba(24, 24, 27, 0.04);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    color-scheme: dark;
+
+    --color-canvas: #0b0b0d;
+    --color-surface: #17171a;
+    --color-surface-2: #212124;
+    --color-border: #2c2c31;
+    --color-ink: #f4f4f5;
+    --color-ink-2: #9a9aa2;
+
+    --color-accent: #818cf8;
+    --color-accent-ink: #0b0b0d;
+    --color-accent-soft: #1e1b4b;
+
+    --color-danger: #f87171;
+    --color-danger-bg: #2a1414;
+    --color-danger-ink: #fca5a5;
+
+    --color-success: #4ade80;
+    --color-success-bg: #10261a;
+
+    --color-warn: #facc15;
+    --color-warn-bg: #2a2410;
+
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4);
   }
 }
 
+@theme inline {
+  --color-canvas: var(--color-canvas);
+  --color-surface: var(--color-surface);
+  --color-surface-2: var(--color-surface-2);
+  --color-border: var(--color-border);
+  --color-ink: var(--color-ink);
+  --color-ink-2: var(--color-ink-2);
+  --color-accent: var(--color-accent);
+  --color-accent-ink: var(--color-accent-ink);
+  --color-accent-soft: var(--color-accent-soft);
+  --color-danger: var(--color-danger);
+  --color-danger-bg: var(--color-danger-bg);
+  --color-danger-ink: var(--color-danger-ink);
+  --color-success: var(--color-success);
+  --color-success-bg: var(--color-success-bg);
+  --color-warn: var(--color-warn);
+  --color-warn-bg: var(--color-warn-bg);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+}
+
+@layer components {
+  .card {
+    @apply rounded-xl border border-border bg-surface shadow-[var(--shadow-card)];
+  }
+
+  .input {
+    @apply w-full rounded-md border border-border bg-canvas px-3 py-2 text-sm text-ink outline-none transition-shadow placeholder:text-ink-2/70 focus:border-accent focus:ring-[3px] focus:ring-accent/15;
+  }
+
+  .label {
+    @apply mb-1.5 block text-[13px] font-medium text-ink-2;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-md bg-accent px-3.5 py-2 text-sm font-medium text-accent-ink transition-colors hover:brightness-110 disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-md border border-border bg-surface px-3.5 py-2 text-sm font-medium text-ink transition-colors hover:bg-surface-2 disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  .btn-ghost-danger {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-danger transition-colors hover:bg-danger-bg disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  .link {
+    @apply font-medium text-accent underline decoration-accent/30 underline-offset-2 hover:decoration-accent;
+  }
+
+  .banner-danger {
+    @apply rounded-md border border-danger/20 bg-danger-bg px-3 py-2 text-sm text-danger-ink;
+  }
+
+  .table-shell {
+    @apply overflow-x-auto rounded-xl border border-border bg-surface shadow-[var(--shadow-card)];
+  }
+
+  .table-shell table {
+    @apply w-full text-sm;
+  }
+
+  .table-shell thead {
+    @apply bg-surface-2 text-left text-xs font-medium uppercase tracking-wide text-ink-2;
+  }
+
+  .table-shell th {
+    @apply px-4 py-2.5;
+  }
+
+  .table-shell td {
+    @apply px-4 py-3;
+  }
+
+  .table-shell tbody tr {
+    @apply border-t border-border;
+  }
 }

@@ -68,116 +68,93 @@ export default function NewInvoicePage() {
   }
 
   return (
-    <div className="max-w-2xl space-y-4">
-      <h1 className="text-lg font-semibold">New invoice</h1>
+    <div className="max-w-2xl space-y-5">
+      <h1 className="text-lg font-semibold text-ink">New invoice</h1>
 
-      <form onSubmit={handleSubmit} className="space-y-4 rounded border bg-white p-4">
-        {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+      <form onSubmit={handleSubmit} className="card space-y-5 p-6">
+        {error && <p className="banner-danger">{error}</p>}
 
         <div>
-          <label className="block text-sm font-medium">Customer name</label>
-          <input
-            required
-            value={customerName}
-            onChange={(e) => setCustomerName(e.target.value)}
-            className="mt-1 w-full rounded border px-3 py-2 text-sm"
-          />
+          <label className="label">Customer name</label>
+          <input required value={customerName} onChange={(e) => setCustomerName(e.target.value)} className="input" />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium">Issue date</label>
-            <input
-              required
-              type="date"
-              value={issueDate}
-              onChange={(e) => setIssueDate(e.target.value)}
-              className="mt-1 w-full rounded border px-3 py-2 text-sm"
-            />
+            <label className="label">Issue date</label>
+            <input required type="date" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} className="input" />
           </div>
           <div>
-            <label className="block text-sm font-medium">Due date</label>
-            <input
-              required
-              type="date"
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
-              className="mt-1 w-full rounded border px-3 py-2 text-sm"
-            />
+            <label className="label">Due date</label>
+            <input required type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="input" />
           </div>
         </div>
 
         <div className="space-y-2">
-          <label className="block text-sm font-medium">Line items</label>
-          {lines.map((line, i) => {
-            const product = products.find((p) => p.id === line.productId);
-            return (
-              <div key={i} className="flex items-center gap-2">
-                <select
-                  required
-                  value={line.productId}
-                  onChange={(e) => updateLine(i, { productId: e.target.value })}
-                  className="flex-1 rounded border px-3 py-2 text-sm"
-                >
-                  <option value="">Select product</option>
-                  {products.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.sku} — {p.name} ({p.quantityOnHand} in stock)
-                    </option>
-                  ))}
-                </select>
-                <input
-                  required
-                  type="number"
-                  min={1}
-                  value={line.quantity}
-                  onChange={(e) => updateLine(i, { quantity: Number(e.target.value) })}
-                  className="w-20 rounded border px-3 py-2 text-sm"
-                />
-                <span className="w-28 text-right text-sm text-zinc-600">
-                  {product ? formatMoney(product.unitPrice * line.quantity) : "-"}
-                </span>
-                <button type="button" onClick={() => removeLine(i)} className="text-sm text-red-600">
-                  Remove
-                </button>
-              </div>
-            );
-          })}
-          <button type="button" onClick={addLine} className="text-sm font-medium text-zinc-900 underline">
+          <label className="label mb-0">Line items</label>
+          <div className="space-y-2">
+            {lines.map((line, i) => {
+              const product = products.find((p) => p.id === line.productId);
+              return (
+                <div key={i} className="flex items-center gap-2">
+                  <select
+                    required
+                    value={line.productId}
+                    onChange={(e) => updateLine(i, { productId: e.target.value })}
+                    className="input flex-1"
+                  >
+                    <option value="">Select product</option>
+                    {products.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.sku} — {p.name} ({p.quantityOnHand} in stock)
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    required
+                    type="number"
+                    min={1}
+                    value={line.quantity}
+                    onChange={(e) => updateLine(i, { quantity: Number(e.target.value) })}
+                    className="input w-20 shrink-0"
+                  />
+                  <span className="w-28 shrink-0 text-right text-sm tabular-nums text-ink-2">
+                    {product ? formatMoney(product.unitPrice * line.quantity) : "—"}
+                  </span>
+                  <button type="button" onClick={() => removeLine(i)} className="btn-ghost-danger shrink-0">
+                    Remove
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+          <button type="button" onClick={addLine} className="link text-sm">
             + Add line
           </button>
         </div>
 
         <div>
-          <label className="block text-sm font-medium">Notes</label>
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            className="mt-1 w-full rounded border px-3 py-2 text-sm"
-          />
+          <label className="label">Notes</label>
+          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="input" rows={3} />
         </div>
 
-        <div className="space-y-1 border-t pt-3 text-sm">
-          <div className="flex justify-between">
-            <span className="text-zinc-500">Subtotal</span>
-            <span>{formatMoney(subtotal)}</span>
+        <div className="space-y-1.5 border-t border-border pt-4 text-sm">
+          <div className="flex justify-between text-ink-2">
+            <span>Subtotal</span>
+            <span className="tabular-nums text-ink">{formatMoney(subtotal)}</span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-zinc-500">Tax ({TAX_RATE_PERCENT}%)</span>
-            <span>{formatMoney(taxAmount)}</span>
+          <div className="flex justify-between text-ink-2">
+            <span>Tax ({TAX_RATE_PERCENT}%)</span>
+            <span className="tabular-nums text-ink">{formatMoney(taxAmount)}</span>
           </div>
-          <div className="flex justify-between font-semibold">
+          <div className="flex justify-between border-t border-border pt-1.5 text-base font-semibold text-ink">
             <span>Total</span>
-            <span>{formatMoney(total)}</span>
+            <span className="tabular-nums">{formatMoney(total)}</span>
           </div>
-          <p className="pt-1 text-xs text-zinc-400">Final totals are calculated by the server on save.</p>
+          <p className="pt-1 text-xs text-ink-2">Final totals are calculated by the server on save.</p>
         </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="rounded bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-        >
+        <button type="submit" disabled={loading} className="btn-primary">
           {loading ? "Saving..." : "Save as draft"}
         </button>
       </form>
