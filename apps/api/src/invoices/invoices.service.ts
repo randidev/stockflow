@@ -154,10 +154,18 @@ export class InvoicesService {
 
   async pay(userId: string, id: string) {
     const existing = await this.findOne(userId, id);
-    if (existing.status !== InvoiceStatus.ISSUED) {
+    // Guarding the UPDATE itself with the expected status (rather than just
+    // checking-then-writing) makes this safe against two concurrent "mark
+    // paid" clicks on the same invoice: Postgres's row lock on the UPDATE
+    // serializes them, and the loser's WHERE no longer matches.
+    const result = await this.prisma.invoice.updateMany({
+      where: { id, userId, status: InvoiceStatus.ISSUED },
+      data: { status: InvoiceStatus.PAID },
+    });
+    if (result.count === 0) {
       throw new ConflictException(`Cannot mark as paid an invoice with status ${existing.status}`);
     }
-    return this.prisma.invoice.update({ where: { id }, data: { status: InvoiceStatus.PAID }, include: { items: true } });
+    return this.findOne(userId, id);
   }
 
   async cancel(userId: string, id: string) {
@@ -167,6 +175,17 @@ export class InvoicesService {
     }
 
     return this.prisma.$transaction(async (tx) => {
+      // Same reasoning as pay(): the status guard lives on the UPDATE
+      // itself so a concurrent duplicate cancel can't also pass the check
+      // and restore stock a second time.
+      const result = await tx.invoice.updateMany({
+        where: { id, userId, status: existing.status },
+        data: { status: InvoiceStatus.CANCELLED },
+      });
+      if (result.count === 0) {
+        throw new ConflictException('Invoice status changed by another request, please retry');
+      }
+
       if (existing.status === InvoiceStatus.ISSUED) {
         for (const item of existing.items) {
           await tx.product.update({
@@ -175,7 +194,7 @@ export class InvoicesService {
           });
         }
       }
-      return tx.invoice.update({ where: { id }, data: { status: InvoiceStatus.CANCELLED }, include: { items: true } });
+      return tx.invoice.findUniqueOrThrow({ where: { id }, include: { items: true } });
     });
   }
 }
